@@ -127,3 +127,6 @@ Explained only (no level): Tonelli, convergence theorems, Leibniz, Reynolds, coa
 
 ## Comfort budget (Quest field of view)
 `src/comfort.js` audits where UI sits relative to the eye (head at the origin, looking down -z). Budget, tuned for the narrower Quest 2 as well as Quest 3: essential UI within +-30 deg azimuth and -30..+20 deg elevation; board content within +-40 deg and -55..+10 deg. The level menu is laid out on an arc so every button faces the player. Run `comfort()` in the browser console (or `?emu`) on any screen to list anything outside the budget; all screens currently pass.
+
+## Demo mode for the submission video
+Open `/?demo` (desktop) or `/?emu&demo` (inside the emulated Quest), click **Start demo**, and record the window during the 3 s countdown. A scripted virtual hand plays Hello, Summit, Hole, Gauss and the Field Architect, then shows the streak and accessibility toggles, with captions. It runs about 1 minute 45 seconds. With the OpenAI function live, the Architect scene shows "(OpenAI)" in its log.

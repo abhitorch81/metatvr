@@ -115,14 +115,17 @@ export class UI {
       cam.getWorldPosition(o); d.applyQuaternion(cam.getWorldQuaternion(new THREE.Quaternion()));
       gazeRay = new THREE.Raycaster(o, d);
     }
-    let gazeHit = null;
+    let gazeHit = null, nearest = null;
+    if (!gazeRay && !input.useRay && (input.xr || input.script) && input.active) { // only the closest button counts, so neighbours never fire together
+      let bd = 0.085; for (const b of this.buttons) { if (!b.mesh.visible) continue; const d = input.tipW.distanceTo(b.mesh.getWorldPosition(wp)); if (d < bd) { bd = d; nearest = b; } }
+    }
     for (const b of this.buttons) {
       if (!b.mesh.visible) { b.hover = false; continue; }
       let near = false;
       b.mesh.getWorldPosition(wp);
       if (gazeRay) { const h = gazeRay.intersectObject(b.mesh); near = h.length > 0; if (near) gazeHit = h[0].point; }
       else if (input.useRay) near = input.ray.intersectObject(b.mesh).length > 0;
-      else if (input.xr) near = input.active && input.tipW.distanceTo(wp) < 0.085;
+      else if (input.xr || input.script) near = b === nearest;
       if (near !== b.hover) { b.hover = near; b.prog = 0; this.paintButton(b); }
       if (near && input.pressed) { consumed = true; b.cb(); this.flash(b); b.prog = 0; }
       else if (near && dwell && !input.down) {

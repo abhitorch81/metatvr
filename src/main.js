@@ -183,4 +183,5 @@ class App {
 }
 
 window.app = new App();
+if (new URLSearchParams(location.search).has('demo')) import('./demo.js').then((d) => d.setup(window.app));
 window.comfort = () => audit(window.app); // dev helper: UI angles vs the comfort budget

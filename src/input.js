@@ -99,6 +99,10 @@ export class Input {
       if (!this.boardHit()) this.active = false;
       this.cursor.visible = false;
     }
+    if (this.script) { // demo mode: a scripted virtual hand overrides the real pointer
+      this.active = true; this.useRay = false; this.tipW.copy(this.script.p); this.down = this.script.down; this.cursor.visible = true;
+      this.cursor.position.copy(this.tipW); this.cursor.scale.setScalar(this.down ? 0.7 : 1.3); this.cursor.material.color.set(this.down ? 0xffd45e : 0xffffff);
+    }
     this.pressed = this.down && !this._prev;
     this.released = !this.down && this._prev;
   }
