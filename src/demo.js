@@ -132,19 +132,20 @@ function initRecorder(app) {
     end: { lines: ['Play free in your browser: metatvr.vercel.app', 'WebXR · hand tracking · no controllers', window.emu ? 'Footage: real gameplay on a simulated Meta Quest 3 (Immersive Web Emulator)' : 'Footage: real gameplay, desktop preview of the WebXR build'] },
   };
   window.__shot = () => comp.toBlob((b) => fetch('http://localhost:8799/shot', { method: 'POST', body: b }));
-  let mr = null; const chunks = [];
+  let mr = null, T0 = 0; const chunks = [], caps = [];
   return {
-    say: (t) => { st.cap = t; },
-    card: async (k, ms) => { st.card = cards[k]; await sleep(ms); st.card = null; await sleep(600); },
+    say: (t) => { st.cap = t; if (T0 && t) caps.push({ t: +((performance.now() - T0) / 1000).toFixed(2), text: t }); },
+    card: async (k, ms) => { if (T0) caps.push({ t: +((performance.now() - T0) / 1000).toFixed(2), text: 'CARD ' + k }); st.card = cards[k]; await sleep(ms); st.card = null; await sleep(600); },
     start() {
       const stream = comp.captureStream(30);
       try { const d = app.audio.ctx.createMediaStreamDestination(); app.audio.master.connect(d); d.stream.getAudioTracks().forEach((t) => stream.addTrack(t)); } catch { /* silent video */ }
       mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 9e6 });
-      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data); mr.start(1000);
+      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data); mr.start(1000); T0 = performance.now();
     },
     async finish() {
       await new Promise((res) => { mr.onstop = res; mr.stop(); });
       const blob = new Blob(chunks, { type: 'video/webm' });
+      try { await fetch('http://localhost:8799/caps', { method: 'POST', body: JSON.stringify(caps) }); } catch { /* optional */ }
       try { await fetch('http://localhost:8799/save', { method: 'POST', body: blob }); window.__recSaved = blob.size; } catch (e) { window.__recSaved = 'upload failed: ' + e.message; }
     },
   };
