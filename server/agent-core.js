@@ -15,7 +15,7 @@ async function chat(messages, max = 500) {
     headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
     body: JSON.stringify({ model: MODEL(), temperature: 0.9, max_tokens: max, response_format: { type: 'json_object' }, messages }),
   });
-  if (!r.ok) throw new Error(`OpenAI ${r.status}`);
+  if (!r.ok) { let d = ''; try { const j = await r.json(); d = ` ${j.error?.code || j.error?.type || ''}: ${j.error?.message || ''}`.slice(0, 200); } catch { /* no body */ } throw new Error(`OpenAI ${r.status}${d}`); }
   const j = await r.json();
   return JSON.parse(j.choices[0].message.content);
 }
