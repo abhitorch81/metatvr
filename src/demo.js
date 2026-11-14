@@ -20,7 +20,13 @@ export function setup(app) {
   go.textContent = 'Start demo (starts in 3 s: begin recording first)';
   go.style.cssText = 'position:fixed;left:50%;top:45%;transform:translateX(-50%);padding:18px 30px;font:600 22px system-ui;z-index:100;border-radius:12px;border:0;background:#ffd45e;cursor:pointer';
   document.body.appendChild(go);
-  go.onclick = async () => { go.remove(); app.audio.unlock(); await sleep(3000); try { await run(app, say, rec); } catch (e) { console.error(e); say('Demo stopped: ' + e.message); } };
+  go.onclick = async () => {
+    go.remove(); app.audio.unlock();
+    if (window.emu) { // inside the emulated Quest: enter VR, then let the virtual hand follow the scripted pointer
+      const vb = [...document.querySelectorAll('button')].find((b) => /ENTER VR/i.test(b.textContent)); vb && vb.click(); await sleep(2500);
+      setInterval(() => { const h = window.emu.hand, S = inp.script; h.position.set(S.p.x + 0.048, S.p.y + 1.6 - 0.034, S.p.z); h.updatePinchValue && h.updatePinchValue(S.down ? 1 : 0); }, 16);
+    }
+    await sleep(3000); try { await run(app, say, rec); } catch (e) { console.error(e); say('Demo stopped: ' + e.message); } };
 }
 
 async function run(app, say, rec) {
@@ -96,14 +102,17 @@ async function run(app, say, rec) {
 // Composites the WebGL canvas + captions + title cards into a 1920x1080 canvas and records it (with the game audio).
 function initRecorder(app) {
   const q = new URLSearchParams(location.search), W = Number(q.get('w')) || 1280, H = Math.round(W * 9 / 16), r = app.renderer, K = W / 1920;
-  r.setPixelRatio(1); r.setSize(W, H, false); r.domElement.style.cssText = 'width:100vw;height:100vh;object-fit:contain';
-  app.camera.aspect = W / H; app.camera.fov = 54; app.camera.position.set(0, 0.2, 0.55); app.camera.lookAt(0, -0.2, -0.8); app.camera.updateProjectionMatrix();
-  addEventListener('resize', () => { r.setSize(W, H, false); app.camera.aspect = W / H; app.camera.updateProjectionMatrix(); }, true);
+  if (!window.emu) { r.setPixelRatio(1); r.setSize(W, H, false); } if (!window.emu) r.domElement.style.cssText = 'width:100vw;height:100vh;object-fit:contain';
+  if (!window.emu) { app.camera.aspect = W / H; app.camera.fov = 54; app.camera.position.set(0, 0.2, 0.55); app.camera.lookAt(0, -0.2, -0.8); app.camera.updateProjectionMatrix(); }
+  addEventListener('resize', () => { if (window.emu) return; r.setSize(W, H, false); app.camera.aspect = W / H; app.camera.updateProjectionMatrix(); }, true);
   const comp = document.createElement('canvas'); comp.width = W; comp.height = H; const c = comp.getContext('2d');
   const st = { cap: '', capA: 0, card: null, cardA: 0 };
   const render = r.render.bind(r);
   r.render = (a, b) => {
-    render(a, b); c.drawImage(r.domElement, 0, 0, W, H);
+    render(a, b);
+    const cv = r.domElement, sa = cv.width / cv.height, da = W / H; let sw = cv.width, sh = cv.height, sx = 0, sy = 0; // cover-crop to 16:9
+    if (sa > da) { sw = cv.height * da; sx = (cv.width - sw) / 2; } else { sh = cv.width / da; sy = (cv.height - sh) / 2; }
+    c.drawImage(cv, sx, sy, sw, sh, 0, 0, W, H);
     st.capA += ((st.cap ? 1 : 0) - st.capA) * 0.18; st.cardA += ((st.card ? 1 : 0) - st.cardA) * 0.12;
     if (st.capA > 0.02 && st.cap) {
       c.save(); c.scale(K, K); c.globalAlpha = st.capA; c.font = '600 44px system-ui, sans-serif'; c.textAlign = 'center';
@@ -120,7 +129,7 @@ function initRecorder(app) {
   };
   const cards = {
     intro: { lines: ['Calculus you can touch.', 'A hands-only, seated VR puzzle game for Meta Quest'] },
-    end: { lines: ['Play free in your browser: metatvr.vercel.app', 'WebXR · hand tracking · no controllers', 'Footage: real gameplay, desktop preview of the WebXR build'] },
+    end: { lines: ['Play free in your browser: metatvr.vercel.app', 'WebXR · hand tracking · no controllers', window.emu ? 'Footage: real gameplay on a simulated Meta Quest 3 (Immersive Web Emulator)' : 'Footage: real gameplay, desktop preview of the WebXR build'] },
   };
   window.__shot = () => comp.toBlob((b) => fetch('http://localhost:8799/shot', { method: 'POST', body: b }));
   let mr = null; const chunks = [];

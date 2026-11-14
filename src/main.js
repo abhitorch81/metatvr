@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { Input } from './input.js';
-import { UI } from './ui.js';
+import { UI, REACH } from './ui.js';
 import { Audio } from './audio.js';
 import { LEVELS, PLAYABLE } from './list.js';
 import { Menu } from './menu.js';
@@ -9,7 +9,7 @@ import { audit } from './comfort.js';
 
 if (new URLSearchParams(location.search).has('emu')) await import('./emu.js');
 
-const SCALE = 0.2; // 1 board unit = 20 cm -> a 80 cm wide board
+const SCALE = 0.2; // 1 board unit = 20 cm -> an ~64 cm wide board after REACH scaling
 const SAVE_KEY = 'gradient-vr-progress-v2', META_KEY = 'gradient-vr-meta-v1';
 const dayNum = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
 
@@ -34,7 +34,7 @@ class App {
 
     // seated layout, everything within arm's reach (the "airplane seat" test)
     this.board = new THREE.Group();
-    this.board.position.set(0, -0.4, -0.7);
+    this.board.position.set(0, -0.4 * REACH, -0.7 * REACH); this.board.scale.setScalar(REACH);
     this.board.rotation.x = 0.5;
     this.scene.add(this.board);
     this.world = new THREE.Group();
@@ -44,6 +44,9 @@ class App {
     this.audio = new Audio();
     this.ui = new UI(this.scene); this.ui.app = this;
     this.input = new Input(this);
+    // hand joints are lit meshes: without lights they render black
+    this.scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x4a5aa8, 2.2)); const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(0.5, 1, 0.8); this.scene.add(sun);
+    if (new URLSearchParams(location.search).has('record')) this.renderer.xr.setFramebufferScaleFactor(2.5);
     this.addAmbience();
 
     this.nav = [

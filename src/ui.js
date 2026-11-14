@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 
+// Everything is scaled about the head by REACH: angular size and field-of-view layout stay identical, but the
+// buttons sit 20% closer so a seated hand reaches them (arm reach is about 0.6-0.7 m).
+export const REACH = 0.8;
+
 function wrap(ctx, text, x, y, maxW, lh) {
   const words = String(text).split(' ');
   let line = '';
@@ -33,7 +37,7 @@ export class UI {
     this.panel.position.set(0, 0.25, -1.0);
     this.group.add(this.panel);
     // Comfort: the whole UI sits 12 cm lower so the top of the panel stays under +20 degrees of gaze elevation.
-    this.group.position.y = -0.12;
+    this.group.position.y = -0.12 * REACH; this.group.scale.setScalar(REACH);
     this.access = { contrast: false, big: false, dwell: false }; this.dwellT = 1.1;
     this.gaze = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
     this.gaze.renderOrder = 99; this.gaze.visible = false; this.group.add(this.gaze);
