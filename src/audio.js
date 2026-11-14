@@ -3,7 +3,7 @@ export class Audio {
   constructor() { this.ctx = null; this.muted = false; }
   unlock() {
     if (!this.ctx) {
-      try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { /* no audio */ }
+      try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); this.master = this.ctx.createGain(); this.master.connect(this.ctx.destination); } catch { /* no audio */ }
     }
     if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
   }
@@ -15,7 +15,7 @@ export class Audio {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(this.ctx.destination);
+    o.connect(g).connect(this.master);
     o.start(t); o.stop(t + dur + 0.02);
   }
   // Sonification: a continuous tone whose pitch tracks the quantity you are exploring
@@ -25,7 +25,7 @@ export class Audio {
     if (!this.osc) {
       this.osc = this.ctx.createOscillator(); this.og = this.ctx.createGain();
       this.osc.type = 'sine'; this.og.gain.value = 0;
-      this.osc.connect(this.og).connect(this.ctx.destination); this.osc.start();
+      this.osc.connect(this.og).connect(this.master); this.osc.start();
     }
     const t = this.ctx.currentTime;
     this.osc.frequency.setTargetAtTime(freq, t, 0.05); this.og.gain.setTargetAtTime(vol, t, 0.05);
